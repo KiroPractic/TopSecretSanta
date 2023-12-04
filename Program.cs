@@ -25,28 +25,27 @@ foreach (var giftGiver in giftGivers)
 {
     var giftReceiver = giftReceivers.FirstOrDefault(_ => _.Id != giftGiver.Id);
     if (giftReceiver is null || giftReceivers.RemoveAll(_ => _.Id == giftReceiver.Id) != 1)
-        throw new Exception("Invalid operation result.");
+        throw new("Invalid operation result.");
 
-    giftPairings.Add(new GiftingPairing(giftGiver, giftReceiver));
+    giftPairings.Add(new(giftGiver, giftReceiver));
 }
 
 var originalTemplateContent = File.ReadAllText("template.html")
-    .Replace("{{year}}", $"{currentYear}.")
+    .Replace("{{year}}", $"{currentYear}")
     .Replace("{{giftBudgetWithCurrencySign}}", "15 EUR");
 foreach (var giftPairing in giftPairings)
 {
     var qrGenerator = new QRCodeGenerator();
     var qrCodeData = qrGenerator.CreateQrCode($"{giftPairing.GiftReceiver.Name}", QRCodeGenerator.ECCLevel.Q);
     var qrCode = new QRCode(qrCodeData);
-    //var qrCodeImage = qrCode.GetGraphic(20);
     var qrCodeImage = qrCode.GetGraphic(5, Color.Black, Color.White, true);
     emailSender.SendEmail(
-        new Message
+        new()
         {
-            To = new List<MailboxAddress> { new MailboxAddress(giftPairing.GiftGiver.Name, giftPairing.GiftGiver.Email) },
-            Subject = $"Secret Santa {currentYear}",
+            To = new List<MailboxAddress> { new(giftPairing.GiftGiver.Name, giftPairing.GiftGiver.Email) },
+            Subject = $"Secret Santa {currentYear}.",
             Content = originalTemplateContent.Replace("{{genderSpecificSanta}}", giftPairing.GiftGiver.Gender == Gender.Female ? "tajna bakica mraz" : "tajni djedica mraz"),
-            AttachedFile = new AttachedFile{ Name = "SecretQRCode.png", Content = BitmapUtilities.BitmapToBytes(qrCodeImage) }
+            AttachedFile = new() { Name = "SecretQRCode.png", Content = BitmapUtilities.BitmapToBytes(qrCodeImage) }
         });
 }
 

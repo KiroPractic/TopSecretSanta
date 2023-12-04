@@ -2,6 +2,7 @@
 using MimeKit;
 
 namespace TopSecretSanta.Email;
+
 public sealed class Message
 {
     public IEnumerable<MailboxAddress>? To { get; set; }

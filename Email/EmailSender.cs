@@ -2,16 +2,10 @@
 using MimeKit;
 using System.Linq;
 
-
 namespace TopSecretSanta.Email;
 public sealed class EmailSender : IEmailSender
 {
-    private readonly EmailConfiguration configuration;
-
-    public EmailSender()
-    {
-        configuration = new EmailConfiguration();
-    }
+    private readonly EmailConfiguration _configuration = new();
 
     public void SendEmail(Message message)
     {
@@ -22,13 +16,15 @@ public sealed class EmailSender : IEmailSender
     private MimeMessage CreateEmailMessage(Message message)
     {
         var emailMessage = new MimeMessage();
-        emailMessage.From.Add(new MailboxAddress(configuration.From, configuration.From));
+        emailMessage.From.Add(new MailboxAddress(_configuration.From, _configuration.From));
         emailMessage.To.AddRange(message.To);
-        emailMessage.Cc.AddRange(configuration.CarbonCopies.Select(_ => new MailboxAddress(_, _)));
+        emailMessage.Cc.AddRange(_configuration.CarbonCopies.Select(_ => new MailboxAddress(_, _)));
         emailMessage.Subject = message.Subject;
 
-        var bodyBuilder = new BodyBuilder();
-        bodyBuilder.HtmlBody = message.Content;
+        var bodyBuilder = new BodyBuilder
+        {
+            HtmlBody = message.Content
+        };
         if (message.AttachedFile != null)
         {
             bodyBuilder.Attachments.Add(message.AttachedFile.Name, message.AttachedFile.Content);
@@ -40,22 +36,17 @@ public sealed class EmailSender : IEmailSender
 
     private void Send(MimeMessage mailMessage)
     {
-        using (var client = new SmtpClient())
+        using var client = new SmtpClient();
+        try
         {
-            try
-            {
-                client.Connect(configuration.SmtpServer, configuration.Port, configuration.UseSsl);
-                client.Send(mailMessage);
-            }
-            catch
-            {
-                throw;
-            }
-            finally
-            {
-                client.Disconnect(true);
-                client.Dispose();
-            }
+            client.Connect(_configuration.SmtpServer, _configuration.Port, _configuration.UseSsl);
+            client.Authenticate(_configuration.Username, _configuration.Password);
+            client.Send(mailMessage);
+        }
+        finally
+        {
+            client.Disconnect(true);
+            client.Dispose();
         }
     }
 }
